@@ -23,9 +23,8 @@ router.post('/echoAtTime', async ctx => {
         return;
     }
     db.set(time, message);
-    subscriber.subscribe(channelNameForSubscribes).then(() => {
-        db.publish(channelNameForSubscribes, time)
-    });
+    await subscriber.subscribe(channelNameForSubscribes);
+    db.publish(channelNameForSubscribes, time);
     ctx.body = 'Task created!';
 });
 
