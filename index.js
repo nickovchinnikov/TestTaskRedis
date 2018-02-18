@@ -17,6 +17,11 @@ router.get('/', async ctx => {
 
 router.post('/echoAtTime', async ctx => {
     const {time, message} = ctx.request.body;
+    if(!/^[0-2]\d:[0-5]\d:[0-5]\d$/.test(time)) {
+        ctx.status = 400;
+        ctx.body = 'Invalid time format! Use 24h format, dear programmer!';
+        return;
+    }
     db.set(time, message);
     subscriber.subscribe(channelNameForSubscribes).then(() => {
         db.publish(channelNameForSubscribes, time)
