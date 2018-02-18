@@ -10,7 +10,7 @@ You can change query params in ``body``
 
 ```
 {
-   	"time": "18:13",
+   	"time": "18:13:55",
    	"message": "Some custom message"
 }
 ```
