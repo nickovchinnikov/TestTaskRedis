@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Test task for MoonActive",
   "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "repository": "git@github.com:master-7/MoonActive.git",
   "author": "NickMasters",
   "license": "MIT",
