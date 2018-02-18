@@ -1,0 +1,39 @@
+{
+	"info": {
+		"name": "MoonActive",
+		"_postman_id": "ba2d0525-10d6-981a-33ca-c8eb43bb9239",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "EchoAtTime",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"time\": \"Sun Feb 18 2018 17:15:45 GMT+0300 (+03)\",\n\t\"message\": \"Some custom message\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/echoAtTime",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"echoAtTime"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	]
+}
