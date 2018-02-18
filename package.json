@@ -3,6 +3,10 @@
   "version": "1.0.1",
   "description": "Test task for MoonActive",
   "main": "index.js",
+  "engines": {
+    "node": ">=9.5.0"
+  },
+  "engineStrict" : true,
   "scripts": {
     "start": "node index.js"
   },
