@@ -9,6 +9,8 @@ const router = new KoaRouter();
 const db = RedisClient.createClient();
 const subscriber = RedisClient.createClient();
 
+const channelNameForSubscribes = 'ChannelForJobPlanning';
+
 router.get('/', async ctx => {
     ctx.body = 'Hello World!';
 });
@@ -16,29 +18,31 @@ router.get('/', async ctx => {
 router.post('/echoAtTime', async ctx => {
     const {time, message} = ctx.request.body;
     db.set(time, message);
-    subscriber.subscribe('JobChannel').then(() => {
-        db.publish('JobChannel', time)
+    subscriber.subscribe(channelNameForSubscribes).then(() => {
+        db.publish(channelNameForSubscribes, time)
     });
     ctx.body = 'Task created!';
 });
 
 const planner = jobTime => {
     const currentTime = moment().format('HH:mm:ss');
-    const timeStart = new Date("01/01/2007 " + currentTime);
-    const timeEnd = new Date("01/01/2007 " + jobTime);
+    const dummyDate = '01/01/2007';
+    const timeStart = new Date(`${dummyDate} ${currentTime}`);
+    const timeEnd = new Date(`${dummyDate} ${jobTime}`);
     const diff = timeEnd - timeStart;
-    const time = diff < 0 ? 24 * 3600 * 1000 - diff : diff;
+    const mlsPerDay = 24 * 3600 * 1000;
+    const timeout = diff < 0 ? mlsPerDay + diff : diff;
     setTimeout(async () => {
         const result = await db.get(jobTime);
         if (result) {
             console.log(`${jobTime} ${result}`);
+            db.del(jobTime);
         }
-        db.del(jobTime);
-    }, time);
+    }, timeout);
 };
 
 subscriber.on('message', (channel, message) => {
-    if (channel === 'JobChannel') {
+    if (channel === channelNameForSubscribes) {
         planner(message);
     }
 });

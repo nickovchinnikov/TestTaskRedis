@@ -1,6 +1,6 @@
 {
   "name": "MoonActive",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Test task for MoonActive",
   "main": "index.js",
   "scripts": {
