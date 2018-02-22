@@ -9,9 +9,11 @@ const router = new KoaRouter();
 const db = RedisClient.createClient();
 const subscriber = RedisClient.createClient();
 
-const channelNameForSubscribes = 'ChannelForJobPlanning';
+const channelNameForJobPlanning = 'ChannelForJobPlanning';
+const taskKeyInRedis = 'plannedTasks';
+const dummyDate = '01/01/2007';
 
-router.get('/', async ctx => {
+router.get('/', async (ctx) => {
     ctx.body = 'Hello World!';
 });
 
@@ -22,38 +24,67 @@ router.post('/echoAtTime', async ctx => {
         ctx.body = 'Invalid time format! Use 24h format, dear programmer!';
         return;
     }
-    db.set(time, message);
-    await subscriber.subscribe(channelNameForSubscribes);
-    db.publish(channelNameForSubscribes, time);
+    await subscriber.subscribe(channelNameForJobPlanning);
+    const meta = {time, msg: message};
+    db.publish(channelNameForJobPlanning, JSON.stringify(meta));
     ctx.body = 'Task created!';
 });
 
-const planner = jobTime => {
-    const currentTime = moment().format('HH:mm:ss');
-    const dummyDate = '01/01/2007';
+const getCurrentTime = () => {
+    return moment().format('HH:mm:ss');
+};
+
+const convertTimeJobToTimestamp = jobTime => {
+    const timeJob = new Date(`${dummyDate} ${jobTime}`);
+    return timeJob.getTime();
+};
+
+const findFirst = async startFromTimeStamp => {
+    const result = await db.zrangebyscore(taskKeyInRedis, startFromTimeStamp, '+inf');
+    const {runTime, jobTime, message, isLock} = result[0] ? JSON.parse(result[0]) : {};
+    if (message && !isLock) {
+        await db.zadd(taskKeyInRedis, runTime, JSON.stringify({runTime, jobTime, message, isLock: true}));
+        return {jobTime, message, runTime, isLock};
+    }
+    if (isLock === true) {
+        await runner(runTime + 1000);
+    }
+    return {};
+};
+
+const runner = async (startFrom = convertTimeJobToTimestamp(getCurrentTime())) => {
+    const {jobTime, message, runTime} = await findFirst(startFrom);
+    const currentTime = getCurrentTime();
     const timeStart = new Date(`${dummyDate} ${currentTime}`);
-    const timeEnd = new Date(`${dummyDate} ${jobTime}`);
+    const timeEnd = convertTimeJobToTimestamp(jobTime);
     const diff = timeEnd - timeStart;
     const mlsPerDay = 24 * 3600 * 1000;
     const timeout = diff < 0 ? mlsPerDay + diff : diff;
-    setTimeout(async () => {
-        const result = await db.get(jobTime);
-        if (result) {
-            console.log(`${jobTime} ${result}`);
-            db.del(jobTime);
-        }
-    }, timeout);
+    if (jobTime && message) {
+        setTimeout(async () => {
+            console.log(`${jobTime} ${message}`);
+            db.del(taskKeyInRedis, runTime);
+        }, timeout);
+        await runner(runTime + 1000);
+    }
+    return true;
 };
 
-subscriber.on('message', (channel, message) => {
-    if (channel === channelNameForSubscribes) {
-        planner(message);
+const planner = async (jobTime, message) => {
+    const runTime = convertTimeJobToTimestamp(jobTime);
+    await db.zadd(taskKeyInRedis, runTime, JSON.stringify({runTime, jobTime, message}));
+    await runner();
+};
+
+subscriber.on('message', async (channel, message) => {
+    if (channel === channelNameForJobPlanning) {
+        const {time, msg} = JSON.parse(message);
+        await planner(time, msg);
     }
 });
 
 setImmediate(async () => {
-    const keys = await db.keys('*');
-    keys.forEach(planner);
+    await runner();
 });
 
 app
