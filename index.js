@@ -40,7 +40,7 @@ const convertTimeJobToTimestamp = jobTime => {
 };
 
 const findFirst = async startFromTimeStamp => {
-    const result = await db.zrangebyscore(taskKeyInRedis, startFromTimeStamp, '+inf');
+    const result = await db.zrangebyscore(taskKeyInRedis, startFromTimeStamp, '+inf', 'WITHSCORES', 'LIMIT', 0, 1);
     const {runTime, jobTime, message, isLock} = result[0] ? JSON.parse(result[0]) : {};
     if (message && !isLock) {
         await db.zadd(taskKeyInRedis, runTime, JSON.stringify({runTime, jobTime, message, isLock: true}));
